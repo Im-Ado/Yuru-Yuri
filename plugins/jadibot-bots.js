@@ -3,37 +3,30 @@ import { format } from 'util'
 
 let handler = async (m, { conn }) => {
   let uniqueUsers = new Map()
-
   if (!global.conns || !Array.isArray(global.conns)) {
     global.conns = []
   }
-
   global.conns.forEach((conn) => {
     if (conn.user && conn.ws?.socket?.readyState !== ws.CLOSED) {
-      uniqueUsers.set(conn.user.jid, conn)
+      uniqueUsers.set(conn.user.jid, conn.user.name)
     }
   })
-
   let uptime = process.uptime() * 1000
   let formatUptime = clockString(uptime)
-
   let totalUsers = uniqueUsers.size
-
-  let txt = `❀ 「  *Subs - Bots *  」❀\n\n`
+  let txt = `❀ 「 *Subs - Bots * 」❀\n\n`
   txt += `✦ *Bot Principal:* YuruYuri\n`
   txt += `✦ *Tiempo Activa:* ${formatUptime}\n`
   txt += `✦ *Subs Conectados:* ${totalUsers || 0}\n`
-
   if (totalUsers > 0) {
     txt += `\n✧ *Lista de Subs Activos:*\n`
     let i = 1
-    for (let jid of uniqueUsers.keys()) {
-      txt += `  ❏ ${i++}. wa.me/${jid.split('@')[0]}\n`
+    for (let [jid, name] of uniqueUsers) {
+      txt += ` ❏ ${i++}. ${name} - wa.me/${jid.split('@')[0]}\n`
     }
   } else {
     txt += `\n☁︎ *No hay subs conectados por ahora.*`
   }
-
   await conn.reply(m.chat, txt.trim(), m, rcanal)
 }
 
