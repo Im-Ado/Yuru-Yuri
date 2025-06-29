@@ -41,5 +41,5 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   }
 };
 
-handler.command = ['play'];
+handler.command = ['play', 'playaudio'];
 export default handler;
