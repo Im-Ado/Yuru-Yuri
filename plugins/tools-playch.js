@@ -1,62 +1,97 @@
-import fetch from 'node-fetch';
+import axios from 'axios'
+import fetch from 'node-fetch'
 
-let handler = async (m, { conn, usedPrefix, command, text }) => {
-  if (!text) return m.reply(`✐ Ingresa un texto para buscar en YouTube\n> *Ejemplo:* ${usedPrefix + command} ozuna`);
+let handler = async (m, { conn, text }) => {
+  if (!text) return conn.reply(m.chat, `❀ Por favor, proporciona el nombre de una canción o artista.`, m)
 
   try {
-    let api = await (await fetch(`https://delirius-apiofc.vercel.app/search/ytsearch?q=${encodeURIComponent(text)}`)).json();
-    if (!api.data || !api.data.length) return m.reply('❌ No se encontraron resultados para tu búsqueda.');
+    let songInfo = await spotifyxv(text)
+    if (!songInfo.length) throw `✧ No se encontró la canción.`
 
-    let results = api.data[0];
+    let song = songInfo[0]
+    const res = await fetch(`https://api.sylphy.xyz/download/spotify?url=${song.url}&apikey=sylph-96ccb836bc`)
 
-    // Verificar duración 0:00
-    if (results.duration === '0:00' || results.duration === '0.00' || !results.duration) {
-      return m.reply('❌ El video tiene duración 0:00 y no se puede descargar.');
-    }
+    if (!res.ok) throw `Error al obtener datos de la API, código: ${res.status}`
 
-    let txt = `*「✦」 ${results.title}*\n\n` +
-              `> ✦ *Canal:* ${results.author?.name || 'Desconocido'}\n` +
-              `> ⴵ *Duración:* ${results.duration || 'Desconocida'}\n` +
-              `> ✰ *Vistas:* ${results.views || 'Desconocidas'}\n` +
-              `> ✐ *Publicado:* ${results.publishedAt || 'Desconocida'}\n` +
-              `> 🜸 *Link:* ${results.url || 'No disponible'}`;
+    const data = await res.json().catch((e) => {
+      console.error('Error al parsear JSON:', e)
+      throw "Error al analizar la respuesta JSON."
+    })
 
-    // Enviar info al privado
-    let senderJid = m.sender;
-    let img = results.image || null;
+    if (!data.data.dl_url) throw "No se pudo obtener el enlace de descarga."
 
-    if (img) {
-      await conn.sendMessage(senderJid, { image: { url: img }, caption: txt }, { quoted: m });
-    } else {
-      await conn.sendMessage(senderJid, { text: txt }, { quoted: m });
-    }
+    const info = `*「✦」 ${data.data.title}*\n\n` +
+      `> ✧ Artista: *${data.data.artist}*\n` +
+      `> ✰ Álbum: *${data.data.album}*\n` +
+      `> ⴵ Duración: *${data.data.duration}*\n` +
+      `> 🜸 Link: ${song.url}`
 
-    // Descargar el audio desde Adonix API
-    let api2 = await (await fetch(`https://theadonix-api.vercel.app/api/ytmp3?url=${encodeURIComponent(results.url)}`)).json();
+    // Enviar info al privado del usuario sin externalAdReply
+    await conn.sendMessage(m.sender, {
+      text: info
+    }, { quoted: m })
 
-    if (!api2.result || !api2.result.audio) {
-      return m.reply('❌ No se pudo obtener el audio del video.');
-    }
-
-    // Enviar al canal
-    let canal = '120363420941524030@newsletter';
+    // Enviar audio al canal
+    let canal = '120363420941524030@newsletter'
     try {
       await conn.sendMessage(canal, {
-        audio: { url: api2.result.audio },
-        mimetype: 'audio/mpeg',
+        audio: { url: data.data.dl_url },
+        fileName: `${data.data.title}.mp3`,
+        mimetype: 'audio/mp4',
         ptt: true
-      });
-
-      await m.reply('✅ Audio enviado correctamente al canal.');
+      })
+      await m.reply('✅ Audio enviado correctamente al canal.')
     } catch (err) {
-      await m.reply('❌ Falló al enviar el audio al canal.');
+      await m.reply('❌ Falló al enviar el audio al canal.')
     }
 
-  } catch (e) {
-    m.reply(`❌ Error: ${e.message}`);
-    await m.react('✖️');
+  } catch (e1) {
+    m.reply(`${e1.message || e1}`)
   }
-};
+}
 
-handler.command = ['playch'];
-export default handler;
+handler.help = ['playch']
+handler.tags = ['downloader']
+handler.command = ['playch']
+handler.group = true
+
+export default handler
+
+// FUNCIONES AUXILIARES
+
+async function spotifyxv(query) {
+  let token = await tokens()
+  let response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track`, {
+    headers: {
+      Authorization: 'Bearer ' + token
+    }
+  })
+  const tracks = response.data.tracks.items
+  return tracks.map((track) => ({
+    name: track.name,
+    artista: track.artists.map((artist) => artist.name),
+    album: track.album.name,
+    duracion: timestamp(track.duration_ms),
+    url: track.external_urls.spotify,
+    imagen: track.album.images.length ? track.album.images[0].url : ''
+  }))
+}
+
+async function tokens() {
+  const response = await axios({
+    method: 'post',
+    url: 'https://accounts.spotify.com/api/token',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: 'Basic ' + Buffer.from('acc6302297e040aeb6e4ac1fbdfd62c3:0e8439a1280a43aba9a5bc0a16f3f009').toString('base64')
+    },
+    data: 'grant_type=client_credentials'
+  })
+  return response.data.access_token
+}
+
+function timestamp(time) {
+  const minutes = Math.floor(time / 60000)
+  const seconds = Math.floor((time % 60000) / 1000)
+  return minutes + ':' + (seconds < 10 ? '0' : '') + seconds
+}
