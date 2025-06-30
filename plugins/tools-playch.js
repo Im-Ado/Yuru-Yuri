@@ -11,14 +11,17 @@ let handler = async (m, { conn, text }) => {
     let song = songInfo[0]
     const res = await fetch(`https://api.sylphy.xyz/download/spotify?url=${song.url}&apikey=sylph-96ccb836bc`)
 
-    if (!res.ok) throw `Error al obtener datos de la API, código: ${res.status}`
+    if (!res.ok) throw `❌ Error al obtener datos de la API, código: ${res.status}`
 
     const data = await res.json().catch((e) => {
-      console.error('Error al parsear JSON:', e)
+      console.error('❌ Error al parsear JSON:', e)
       throw "Error al analizar la respuesta JSON."
     })
 
-    if (!data.data.dl_url) throw "No se pudo obtener el enlace de descarga."
+    if (!data || !data.data || !data.data.dl_url) {
+      console.log('🪵 Respuesta de la API:', data)
+      throw "❌ La API no devolvió el enlace de descarga válido."
+    }
 
     const info = `*「✦」 ${data.data.title}*\n\n` +
       `> ✧ Artista: *${data.data.artist}*\n` +
@@ -26,10 +29,8 @@ let handler = async (m, { conn, text }) => {
       `> ⴵ Duración: *${data.data.duration}*\n` +
       `> 🜸 Link: ${song.url}`
 
-    // Enviar info al privado del usuario sin externalAdReply
-    await conn.sendMessage(m.sender, {
-      text: info
-    }, { quoted: m })
+    // Enviar info al privado
+    await conn.sendMessage(m.sender, { text: info }, { quoted: m })
 
     // Enviar audio al canal
     let canal = '120363420941524030@newsletter'
@@ -42,15 +43,18 @@ let handler = async (m, { conn, text }) => {
       })
       await m.reply('✅ Audio enviado correctamente al canal.')
     } catch (err) {
+      console.log('❌ Error al enviar al canal:', err)
       await m.reply('❌ Falló al enviar el audio al canal.')
     }
 
   } catch (e1) {
+    console.error('❌ Error general:', e1)
     m.reply(`${e1.message || e1}`)
   }
 }
 
-
+handler.help = ['playch']
+handler.tags = ['downloader']
 handler.command = ['playch']
 handler.group = false
 
