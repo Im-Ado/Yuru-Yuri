@@ -8,6 +8,12 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     if (!api.data || !api.data.length) return m.reply('❌ No se encontraron resultados para tu búsqueda.');
 
     let results = api.data[0];
+
+    // Verificar duración 0:00
+    if (results.duration === '0:00' || results.duration === '0.00' || !results.duration) {
+      return m.reply('❌ El video tiene duración 0:00 y no se puede descargar.');
+    }
+
     let txt = `*「✦」 ${results.title}*\n\n` +
               `> ✦ *Canal:* ${results.author?.name || 'Desconocido'}\n` +
               `> ⴵ *Duración:* ${results.duration || 'Desconocida'}\n` +
@@ -15,7 +21,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
               `> ✐ *Publicado:* ${results.publishedAt || 'Desconocida'}\n` +
               `> 🜸 *Link:* ${results.url || 'No disponible'}`;
 
-    // Mandar info al privado del user
+    // Enviar info al privado
     let senderJid = m.sender;
     let img = results.image || null;
 
@@ -32,7 +38,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       return m.reply('❌ No se pudo obtener el audio del video.');
     }
 
-    // Mandar audio al canal
+    // Enviar al canal
     let canal = '120363420941524030@newsletter';
     try {
       await conn.sendMessage(canal, {
@@ -41,7 +47,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
         ptt: true
       });
 
-      await m.reply('✅ Se envió el audio al canal correctamente.');
+      await m.reply('✅ Audio enviado correctamente al canal.');
     } catch (err) {
       await m.reply('❌ Falló al enviar el audio al canal.');
     }
