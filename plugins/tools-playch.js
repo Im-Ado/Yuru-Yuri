@@ -9,7 +9,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
     let results = api.data[0];
 
-    // Verificar duración 0:00
+    // Verificar si algo falla en la api pa así mandar archivo error :>
     if (results.duration === '0:00' || results.duration === '0.00' || !results.duration) {
       return m.reply('❌ El video tiene duración 0:00 y no se puede descargar.');
     }
