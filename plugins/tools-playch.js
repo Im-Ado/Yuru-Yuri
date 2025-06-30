@@ -50,10 +50,9 @@ let handler = async (m, { conn, text }) => {
   }
 }
 
-handler.help = ['playch']
-handler.tags = ['downloader']
+
 handler.command = ['playch']
-handler.group = true
+handler.group = false
 
 export default handler
 
