@@ -31,14 +31,14 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       await conn.sendMessage(senderJid, { text: txt }, { quoted: m });
     }
 
-    // Descargar el audio desde Adonix API
+    // Descargar el audio rapidito XD
     let api2 = await (await fetch(`https://theadonix-api.vercel.app/api/ytmp3?url=${encodeURIComponent(results.url)}`)).json();
 
     if (!api2.result || !api2.result.audio) {
       return m.reply('❌ No se pudo obtener el audio del video.');
     }
 
-    // Enviar al canal
+    // Aquí enviamos al canal XD
     let canal = '120363420941524030@newsletter';
     try {
       await conn.sendMessage(canal, {
